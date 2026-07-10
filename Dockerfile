@@ -27,7 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install CPU-only PyTorch first to save massive amounts of RAM and disk space on Railway/Render
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source
 COPY backend/ ./backend/
@@ -36,7 +38,7 @@ COPY backend/ ./backend/
 COPY Dataset/ ./Dataset/
 
 # Copy frontend static build from stage 1
-COPY --from=frontend-builder /app/frontend/out ./static/
+COPY --from=frontend-builder /app/frontend/out /app/static/
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -46,5 +48,8 @@ ENV STATIC_DIR=/app/static
 # Expose port
 EXPOSE 8000
 
+# Change workdir so uvicorn finds the app module natively
+WORKDIR /app/backend
+
 # Run the FastAPI server
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
