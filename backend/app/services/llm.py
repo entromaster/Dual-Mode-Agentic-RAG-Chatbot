@@ -17,17 +17,13 @@ from app.config import GOOGLE_API_KEY, GEMINI_MODEL, EMBEDDING_MODEL, CURRENT_DA
 
 logger = logging.getLogger(__name__)
 
-# ── Singleton client ──────────────────────────────────────────────────────────
-_client: genai.Client | None = None
+# ── Client factory ────────────────────────────────────────────────────────────
 
-
-def _get_client() -> genai.Client:
-    global _client
-    if _client is None:
-        if not GOOGLE_API_KEY:
-            raise RuntimeError("GOOGLE_API_KEY environment variable is not set.")
-        _client = genai.Client(api_key=GOOGLE_API_KEY)
-    return _client
+def get_client(user_api_key: str | None = None) -> genai.Client:
+    api_key = user_api_key or GOOGLE_API_KEY
+    if not api_key:
+        raise RuntimeError("GOOGLE_API_KEY environment variable is not set and no user key provided.")
+    return genai.Client(api_key=api_key)
 
 
 # ── SQL Generation ────────────────────────────────────────────────────────────
@@ -58,9 +54,9 @@ RULES:
 """
 
 
-def generate_sql(question: str, schema_info: str = "") -> str:
+def generate_sql(question: str, schema_info: str = "", api_key: str | None = None) -> str:
     """Generate a SELECT statement from a natural-language question."""
-    client = _get_client()
+    client = get_client(api_key)
     response = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=[
@@ -83,9 +79,9 @@ def generate_sql(question: str, schema_info: str = "") -> str:
 
 # ── Streaming text generation ─────────────────────────────────────────────────
 
-async def stream_response(system_prompt: str, user_prompt: str) -> AsyncIterator[str]:
+async def stream_response(system_prompt: str, user_prompt: str, api_key: str | None = None) -> AsyncIterator[str]:
     """Stream tokens from Gemini for the final answer."""
-    client = _get_client()
+    client = get_client(api_key)
     response = client.models.generate_content_stream(
         model=GEMINI_MODEL,
         contents=[
@@ -108,9 +104,10 @@ def route_query(
     message: str,
     history: list[types.Content],
     tools: list[types.Tool],
+    api_key: str | None = None,
 ) -> types.GenerateContentResponse:
     """Send a message with tool declarations and return the raw response."""
-    client = _get_client()
+    client = get_client(api_key)
 
     contents = list(history)  # copy
     contents.append(types.Content(role="user", parts=[types.Part(text=message)]))

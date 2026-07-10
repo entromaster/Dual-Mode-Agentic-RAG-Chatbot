@@ -94,7 +94,7 @@ async def chat(request: ChatRequest) -> StreamingResponse:
     history = [{"role": m.role, "content": m.content} for m in request.history]
 
     async def event_generator():
-        async for event in _agent.process_message(request.message, history):
+        async for event in _agent.process_message(request.message, history, request.api_key):
             yield event
 
     return StreamingResponse(

@@ -104,7 +104,7 @@ class Agent:
         self._sql = sql_tool
 
     async def process_message(
-        self, message: str, history: list[dict]
+        self, message: str, history: list[dict], api_key: str | None = None
     ) -> AsyncIterator[str]:
         """Process a user message and yield SSE event strings."""
 
@@ -113,7 +113,7 @@ class Agent:
             hist_contents = _build_history(history)
 
             # 2. Ask Gemini which tool(s) to call
-            response = route_query(message, hist_contents, [_TOOL_DECLARATIONS])
+            response = route_query(message, hist_contents, [_TOOL_DECLARATIONS], api_key)
 
             # 3. Check for function calls in the response
             function_calls: list = []
@@ -244,7 +244,7 @@ class Agent:
                 "Format data results in a readable way."
             )
 
-            async for token in stream_response(_SYSTEM_PROMPT, user_prompt):
+            async for token in stream_response(_SYSTEM_PROMPT, user_prompt, api_key):
                 yield _sse("token", {"content": token})
 
             yield _sse("done", {})

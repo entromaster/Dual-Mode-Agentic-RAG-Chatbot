@@ -24,6 +24,7 @@ export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [apiKey, setApiKey] = useState("");
 
   /* Build compact history payload */
   const buildHistory = useCallback(
@@ -62,7 +63,11 @@ export default function Home() {
         const response = await fetch(`${API_URL}/api/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text.trim(), history }),
+          body: JSON.stringify({ 
+            message: text.trim(), 
+            history,
+            api_key: apiKey.trim() || undefined 
+          }),
         });
 
         if (!response.ok) {
@@ -195,6 +200,16 @@ export default function Home() {
           <div className="header-text">
             <h1>Northwind Gadgets AI</h1>
             <p>Dual-mode Agentic RAG Assistant</p>
+          </div>
+          <div className="api-key-container">
+            <span className="api-key-icon" aria-hidden="true">🔑</span>
+            <input
+              type="password"
+              className="api-key-input"
+              placeholder="Custom Gemini API Key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
           </div>
           <div className="header-status">
             <span className="status-dot" />
